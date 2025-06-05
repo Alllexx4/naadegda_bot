@@ -1,0 +1,12 @@
+# Игнорировать файл с токеном
+.env
+
+# Стандартное
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+.venv/
+.Python
