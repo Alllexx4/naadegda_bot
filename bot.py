@@ -1,41 +1,33 @@
 from aiogram import Bot, Dispatcher, executor, types
 from config import BOT_TOKEN, CHANNEL_ID
+from dotenv import load_dotenv
 import logging
 import os
 
+# Загрузка переменных из .env
+load_dotenv()
+
+# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 
+# Инициализация бота
 bot = Bot(token=BOT_TOKEN, parse_mode="Markdown")
 dp = Dispatcher(bot)
 
-# Чтение приветственного текста
-with open("welcome_text.md", "r", encoding="utf-8") as f:
-    WELCOME_TEXT = f.read()
+# Обработчик команды /start
+@dp.message_handler(commands=["start"])
+async def start_handler(message: types.Message):
+    await message.answer("👋 Бот успешно работает!")
 
-# Команда для ручного теста приветствия
-@dp.message_handler(commands=["sendtest"])
-async def send_test_welcome(message: types.Message):
-    if message.chat.type == "private":
-        buttons = types.InlineKeyboardMarkup(row_width=2)
-        buttons.add(
-            types.InlineKeyboardButton("📌 О канале", url="https://t.me/shitnadegda"),
-            types.InlineKeyboardButton("💬 Написать боту", url="https://t.me/naadegda_bot"),
-            types.InlineKeyboardButton("💰 Поддержать", url="https://bitpay.co.il/?phone=9725281511113"),
-            types.InlineKeyboardButton("📎 Полезные ссылки", url="https://t.me/shitnadegda")
-        )
+# Уведомление при запуске
+async def on_startup(dp):
+    logging.info("✅ Бот успешно запущен и готов к работе!")
+    try:
+        await bot.send_message(CHANNEL_ID, "🤖 Бот запущен и работает на Railway!")
+    except Exception as e:
+        logging.error(f"Ошибка при отправке сообщения о запуске: {e}")
 
-        await bot.send_photo(
-            chat_id=CHANNEL_ID,
-            photo=open("media/Designer_1.png", "rb"),
-            caption=WELCOME_TEXT,
-            reply_markup=buttons
-        )
-
-        await bot.send_photo(
-            chat_id=CHANNEL_ID,
-            photo=open("media/1platyg.png", "rb"),
-            caption="📲 QR-код для поддержки проекта"
-        )
-
+# Запуск бота
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    logging.info("🚀 Запуск бота...")
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
