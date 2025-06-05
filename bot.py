@@ -1,49 +1,56 @@
+from aiogram import Bot, Dispatcher, executor, types
+from config import BOT_TOKEN, CHANNEL_ID
+from dotenv import load_dotenv
 import logging
 import os
-from aiogram import Bot, Dispatcher, executor, types
-from dotenv import load_dotenv
-from aiohttp import web
 import asyncio
+from aiohttp import web
 
-# Загрузка переменных окружения
+# Загрузка переменных из .env
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHANNEL_ID = os.getenv("CHANNEL_ID")
 
-# Логирование
+# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 
-# Telegram Bot
+# Инициализация бота
 bot = Bot(token=BOT_TOKEN, parse_mode="Markdown")
 dp = Dispatcher(bot)
 
+# Обработчик команды /start
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
     logging.info(f"Получена команда /start от: {message.from_user.full_name}")
-    await message.answer("👋 Бот работает и слушает команды!")
+    await message.answer("👋 Бот успешно работает!")
 
+# Уведомление при запуске
 async def on_startup(dp):
     logging.info("✅ Бот успешно запущен и готов к работе!")
     try:
         await bot.send_message(CHANNEL_ID, "🤖 Бот запущен и работает на Railway!")
     except Exception as e:
-        logging.warning(f"Не удалось отправить сообщение в канал: {e}")
+        logging.error(f"Ошибка при отправке сообщения о запуске: {e}")
 
-# HTTP-сервер для проверки "живости"
+# Aiohttp-сервер для /health
 async def handle_health(request):
     return web.Response(text="OK")
 
-async def start_web_app():
+async def start_webserver():
     app = web.Application()
     app.router.add_get("/health", handle_health)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", 8080)
     await site.start()
-    logging.info("🌐 HTTP-сервер запущен на порту 8080")
+    logging.info("🌐 HTTP-сервер /health запущен на порту 8080")
 
-# Запуск бота и веб-сервера параллельно
+# Совмещённый запуск: и бота, и HTTP-сервера
+async def main():
+    await asyncio.gather(
+        start_webserver(),
+        on_startup(dp),
+        dp.start_polling()
+    )
+
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.create_task(start_web_app())
-    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
+    logging.info("🚀 Запуск бота и веб-сервера...")
+    asyncio.run(main())
